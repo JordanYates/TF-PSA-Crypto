@@ -39,6 +39,10 @@
 #endif
 #endif
 
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+#include <psa_external_integration_primitives.h>
+#endif
+
 #if defined(PSA_CRYPTO_DRIVER_TEST)
 
 #if defined(MBEDTLS_TEST_LIBTESTDRIVER1) && \
@@ -111,6 +115,9 @@ typedef union {
     mbedtls_psa_hash_operation_t mbedtls_ctx;
 #if defined(PSA_CRYPTO_DRIVER_TEST)
     mbedtls_transparent_test_driver_hash_operation_t test_driver_ctx;
+#endif
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    psa_driver_external_integration_hash_operation_t external_integration_ctx;
 #endif
 } psa_driver_hash_context_t;
 

@@ -30,6 +30,10 @@
 
 #if defined(MBEDTLS_PSA_CRYPTO_C)
 
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+#include "tf-psa-crypto/drivers/external_integration.h"
+#endif
+
 /* BEGIN-driver headers */
 /* Headers for mbedtls_test opaque driver */
 #if defined(PSA_CRYPTO_DRIVER_TEST)
@@ -57,6 +61,7 @@
 #define MBEDTLS_TEST_OPAQUE_DRIVER_ID (2)
 #define MBEDTLS_TEST_TRANSPARENT_DRIVER_ID (3)
 #define P256_TRANSPARENT_DRIVER_ID (4)
+#define PSA_CRYPTO_EXTERNAL_INTEGRATION_DRIVER_ID (5)
 
 /* END-driver id */
 
@@ -67,6 +72,12 @@
 static inline psa_status_t psa_driver_wrapper_init( void )
 {
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_init();
+    if( status != PSA_SUCCESS )
+        return( status );
+#endif
 
 #if defined(PSA_CRYPTO_DRIVER_TEST)
     status = mbedtls_test_transparent_init( );
@@ -84,6 +95,9 @@ static inline psa_status_t psa_driver_wrapper_init( void )
 
 static inline void psa_driver_wrapper_free( void )
 {
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    psa_driver_external_integration_free();
+#endif
 #if defined(PSA_CRYPTO_DRIVER_TEST)
     mbedtls_test_transparent_free( );
     mbedtls_test_opaque_free( );
@@ -105,6 +119,14 @@ static inline psa_status_t psa_driver_wrapper_sign_message(
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
     psa_key_location_t location =
         PSA_KEY_LIFETIME_GET_LOCATION( psa_get_key_lifetime(attributes) );
+
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_sign_message(
+        attributes, key_buffer, key_buffer_size, alg, input,
+        input_length, signature, signature_size, signature_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
 
     switch( location )
     {
@@ -180,6 +202,14 @@ static inline psa_status_t psa_driver_wrapper_verify_message(
     psa_key_location_t location =
         PSA_KEY_LIFETIME_GET_LOCATION( psa_get_key_lifetime(attributes) );
 
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_verify_message(
+        attributes, key_buffer, key_buffer_size, alg, input,
+        input_length, signature, signature_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
+
     switch( location )
     {
         case PSA_KEY_LOCATION_LOCAL_STORAGE:
@@ -246,6 +276,14 @@ static inline psa_status_t psa_driver_wrapper_sign_hash(
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
     psa_key_location_t location =
         PSA_KEY_LIFETIME_GET_LOCATION( psa_get_key_lifetime(attributes) );
+
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_sign_hash(
+        attributes, key_buffer, key_buffer_size, alg, hash,
+        hash_length, signature, signature_size, signature_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
 
     switch( location )
     {
@@ -329,6 +367,14 @@ static inline psa_status_t psa_driver_wrapper_verify_hash(
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
     psa_key_location_t location =
         PSA_KEY_LIFETIME_GET_LOCATION( psa_get_key_lifetime(attributes) );
+
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_verify_hash(
+        attributes, key_buffer, key_buffer_size, alg, hash,
+        hash_length, signature, signature_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
 
     switch( location )
     {
@@ -944,6 +990,14 @@ static inline psa_status_t psa_driver_wrapper_cipher_encrypt(
     psa_key_location_t location =
         PSA_KEY_LIFETIME_GET_LOCATION( psa_get_key_lifetime(attributes) );
 
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_cipher_encrypt(
+        attributes, key_buffer, key_buffer_size, alg, iv,
+        iv_length, input, input_length, output, output_size, output_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
+
     switch( location )
     {
         case PSA_KEY_LOCATION_LOCAL_STORAGE:
@@ -1033,6 +1087,14 @@ static inline psa_status_t psa_driver_wrapper_cipher_decrypt(
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
     psa_key_location_t location =
         PSA_KEY_LIFETIME_GET_LOCATION( psa_get_key_lifetime(attributes) );
+
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_cipher_decrypt(
+        attributes, key_buffer, key_buffer_size, alg, input, input_length,
+        output, output_size, output_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
 
     switch( location )
     {
@@ -1416,6 +1478,13 @@ static inline psa_status_t psa_driver_wrapper_hash_compute(
 {
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
 
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_hash_compute(
+        alg, input, input_length, hash, hash_size, hash_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
+
     /* Try accelerators first */
 #if defined(PSA_CRYPTO_DRIVER_TEST)
     status = mbedtls_test_transparent_hash_compute(
@@ -1449,6 +1518,15 @@ static inline psa_status_t psa_driver_wrapper_hash_setup(
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
 
     /* Try setup on accelerators first */
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_hash_setup(
+        &operation->ctx.external_integration_ctx, alg);
+    if( status == PSA_SUCCESS )
+        operation->id = PSA_CRYPTO_EXTERNAL_INTEGRATION_DRIVER_ID;
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
+
 #if defined(PSA_CRYPTO_DRIVER_TEST)
     status = mbedtls_test_transparent_hash_setup(
                 &operation->ctx.test_driver_ctx, alg );
@@ -1507,6 +1585,12 @@ static inline psa_status_t psa_driver_wrapper_hash_update(
 {
     switch( operation->id )
     {
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+        case PSA_CRYPTO_EXTERNAL_INTEGRATION_DRIVER_ID:
+            return psa_driver_external_integration_hash_update(
+                &operation->ctx.external_integration_ctx, input, input_length);
+#endif
+
 #if defined(MBEDTLS_PSA_BUILTIN_HASH)
         case PSA_CRYPTO_MBED_TLS_DRIVER_ID:
             return( mbedtls_psa_hash_update( &operation->ctx.mbedtls_ctx,
@@ -1533,6 +1617,11 @@ static inline psa_status_t psa_driver_wrapper_hash_finish(
 {
     switch( operation->id )
     {
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+        case PSA_CRYPTO_EXTERNAL_INTEGRATION_DRIVER_ID:
+            return psa_driver_external_integration_hash_finish(
+                &operation->ctx.external_integration_ctx, hash, hash_size, hash_length);
+#endif
 #if defined(MBEDTLS_PSA_BUILTIN_HASH)
         case PSA_CRYPTO_MBED_TLS_DRIVER_ID:
             return( mbedtls_psa_hash_finish( &operation->ctx.mbedtls_ctx,
@@ -1717,6 +1806,15 @@ static inline psa_status_t psa_driver_wrapper_aead_encrypt(
     psa_key_location_t location =
         PSA_KEY_LIFETIME_GET_LOCATION( psa_get_key_lifetime(attributes) );
 
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_aead_encrypt(
+        attributes, key_buffer, key_buffer_size, alg, nonce, nonce_length,
+        additional_data, additional_data_length, plaintext, plaintext_length,
+        ciphertext, ciphertext_size, ciphertext_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
+
     switch( location )
     {
         case PSA_KEY_LOCATION_LOCAL_STORAGE:
@@ -1778,6 +1876,15 @@ static inline psa_status_t psa_driver_wrapper_aead_decrypt(
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
     psa_key_location_t location =
         PSA_KEY_LIFETIME_GET_LOCATION( psa_get_key_lifetime(attributes) );
+
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_aead_decrypt(
+        attributes, key_buffer, key_buffer_size, alg, nonce, nonce_length,
+        additional_data, additional_data_length, ciphertext, ciphertext_length,
+        plaintext, plaintext_size, plaintext_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
 
     switch( location )
     {
@@ -2233,6 +2340,14 @@ static inline psa_status_t psa_driver_wrapper_mac_compute(
     psa_key_location_t location =
         PSA_KEY_LIFETIME_GET_LOCATION( psa_get_key_lifetime(attributes) );
 
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_mac_compute(
+        attributes, key_buffer, key_buffer_size, alg, input, input_length,
+        mac, mac_size, mac_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
+
     switch( location )
     {
         case PSA_KEY_LOCATION_LOCAL_STORAGE:
@@ -2569,6 +2684,14 @@ static inline psa_status_t psa_driver_wrapper_asymmetric_encrypt(
     psa_key_location_t location =
         PSA_KEY_LIFETIME_GET_LOCATION( psa_get_key_lifetime(attributes) );
 
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_asymmetric_encrypt(
+        attributes, key_buffer, key_buffer_size, alg, input, input_length,
+        salt, salt_length, output, output_size, output_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
+
     switch( location )
     {
         case PSA_KEY_LOCATION_LOCAL_STORAGE:
@@ -2626,6 +2749,14 @@ static inline psa_status_t psa_driver_wrapper_asymmetric_decrypt(
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
     psa_key_location_t location =
         PSA_KEY_LIFETIME_GET_LOCATION( psa_get_key_lifetime(attributes) );
+
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_asymmetric_decrypt(
+        attributes, key_buffer, key_buffer_size, alg, input, input_length,
+        salt, salt_length, output, output_size, output_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
 
     switch( location )
     {
@@ -2690,6 +2821,14 @@ static inline psa_status_t psa_driver_wrapper_key_agreement(
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
     psa_key_location_t location =
         PSA_KEY_LIFETIME_GET_LOCATION( psa_get_key_lifetime(attributes) );
+
+#if defined(PSA_CRYPTO_DRIVER_EXTERNAL_INTEGRATION)
+    status = psa_driver_external_integration_key_agreement(
+        attributes, key_buffer, key_buffer_size, alg, peer_key, peer_key_length,
+        shared_secret, shared_secret_size, shared_secret_length);
+    if( status != PSA_ERROR_NOT_SUPPORTED )
+        return( status );
+#endif
 
     switch( location )
     {
